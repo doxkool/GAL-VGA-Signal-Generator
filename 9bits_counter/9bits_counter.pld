@@ -1,6 +1,7 @@
 Name        9bits_counter;
-Date        07/23/17;
-Revision    1;
+Date 		20-jul-2020;
+Revision 	01;
+Designer 	Dominic Emond-B.;
 Device      g22v10;
 
 /*

@@ -1,6 +1,8 @@
-Name        VGA_buffer;
+Name        9bits_counter;
+Date 		20-jul-2020;
+Revision 	01;
+Designer 	Dominic Emond-B.;
 Date        07/23/17;
-Revision    1;
 Device      g20v8a;
 
 /*
