@@ -1,0 +1,130 @@
+Name     VerticalDecoder;
+PartNo   Zalt-TtlVga-01;
+Date     20-02-2020;
+Revision 01;
+Designer Marc Jacobi;
+Company  Canned Bytes;
+Assembly Zalt Ttl Vga Board;
+Location U304 - Z80 Computer / Ttl Vga;
+Device   G22V10;
+/*Format   j;*/
+
+/* 
+ *  The Vertical Decoder contains the decoding of the vertical counter 
+ *  -based on the line strobe output of the horizontal decoder- that identifies
+ *  important stages in writing an entire frame. 
+ *  The display area is identified and due to our design the top- and bottom 
+ *  border as well as the front-porch, sync pulse and back-porch.
+ *
+ *  Signals that are active for more than one (pixel) clock pulse are setup
+ *  using an S-R latch (bottom of this file).
+ *
+ *  Timings are based of the VGA 640x480 @60Hz VGA standard.
+ */
+
+/*
+                               ______________
+                              |   Counter    |
+                      CLK x---|1           24|---x Vcc                      
+                       V0 x---|2           23|---x Aclr                       
+                       V1 x---|3           22|---x Aenable                   
+                       V2 x---|4           21|---x Vclr                       
+                       V3 x---|5           20|---x VborderT                       
+                       V9 x---|6           19|---x !Vsync                       
+                       V8 x---|7           18|---x Vblank                       
+                       V6 x---|8           17|---x VborderB                       
+                       V7 x---|9           16|---x NC                       
+                       V5 x---|10          15|---x NC                      
+                       V4 x---|11          14|---x NC                       
+                      GND x---|12          13|---x !PE                      
+                              |______________|
+
+ */
+
+/** input pins **/
+
+/* PIN 1   = CLK; */
+/* PIN 13  = !OE; */
+
+PIN 2	 = V0;
+PIN 3   = V1;
+PIN 4   = V2;
+PIN 5   = V3;
+PIN 6   = V9;
+PIN 7   = V8;
+PIN 8   = V6;
+PIN 9   = V7;
+PIN 10  = V5;
+PIN 11  = V4;
+
+/** output pins **/
+
+PIN 23  = Aclr;
+PIN 22  = Aenable;
+PIN 21  = Vclr;
+PIN 20  = VborderT;
+PIN 19  = !Vsync;   /* VSync pulse is negative/active low */
+PIN 18  = Vblank;
+PIN 17  = VborderB;
+
+
+/** counter starts at 0 with the top of 600 lines of display area (000000000)*Bits are inversed* **/
+TopBorder = !V0 & !V1 & !V2 & !V3 & !V4 & !V5 & !V6 & !V7 & !V8 & !V9;
+
+/** Our display window starts at 48 (0000110000) *Bits are inversed* **/
+Window = !V0 & !V1 & !V2 & !V3 & V4 & V5 & !V6 & !V7 & !V8 & !V9;
+
+/** The bottom border at 48+552 ends the visible area of the frame (0001010001) *Bits are inversed* **/
+BottomBorder = !V0 & !V1 & !V2 & V3 & !V4 & V5 & !V6 & !V7 & !V8 & V9;
+
+/** The front-porch at 600 marks the start of the blanking (0001101001) *Bits are inversed* **/
+FrontPorch = !V0 & !V1 & !V2 & V3 & V4 & !V5 & V6 & !V7 & !V8 & V9;
+
+/** The Vertical Sync Pulse starts at 600+1 and ends when the back-porch starts (1001101001) *Bits are inversed* **/
+Sync = V0 & !V1 & !V2 & V3 & V4 & !V5 & V6 & !V7 & !V8 & V9;
+
+/** The final stretch of the blanking -back-porch- starts at 600+1+4 (1011101001) *Bits are inversed* **/
+BackPorch = V0 & !V1 & V2 & V3 & V4 & !V5 & V6 & !V7 & !V8 & V9;
+
+/** counted till the end of the frame (628) (0010111001) *Bits are inversed* **/
+EndOfFrame = !V0 & !V1 & V2 & !V3 & V4 & V5 & V6 & !V7 & !V8 & V9;
+
+/** end of frame resets the address counter **/
+Aenable = !Vblank & !VborderT & !VborderB;
+Aclr = !Aenable;
+
+
+
+/** Vertical Clear **/
+VclrSet = EndOfFrame;
+VclrRes = TopBorder;
+
+VclrNot = !(Vclr # VclrSet);
+Vclr = !(VclrNot # VclrRes);
+
+/** Vertical Sync Pulse **/
+VsyncSet = Sync;
+VsyncRes = BackPorch;
+
+VsyncNot = !(Vsync # VsyncSet);
+Vsync = !(VsyncNot # VsyncRes);
+
+/** Vertical Blank Pulse **/
+VblankSet = FrontPorch;
+VblankRes = EndOfFrame;
+
+VblankNot = !(Vblank # VblankSet);
+Vblank = !(VblankNot # VblankRes);
+
+/** Vertical Border Pulse **/
+VborderSetT = EndOfFrame;
+VborderResT = Window;
+
+VborderNotT = !(VborderT # VborderSetT);
+VborderT = !(VborderNotT # VborderResT);
+
+VborderSetB = BottomBorder;
+VborderResB = FrontPorch;
+
+VborderNotB = !(VborderB # VborderSetB);
+VborderB = !(VborderNotB # VborderResB);
